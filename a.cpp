@@ -7,7 +7,6 @@ const TCHAR parentClassName[] = TEXT("myWindowClass");
 RECT windowRect={0,0,10,10},staticRect={0,0,0,0},editRect={0,0,0,0};
 HWND hwnd,hwndStatic,hwndEdit;
 WNDPROC WPA;
-// const TCHAR mainViewClassName[] = TEXT("myWindowClassMain");
 RECT getStringBorder(std::string text, HFONT font) {
     HDC dc = GetDC(NULL);
     if(font!=NULL){
@@ -78,21 +77,12 @@ LRESULT CALLBACK Edit_Prc(HWND hwnd,UINT msg,WPARAM wParam,LPARAM lParam){
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
     WNDCLASSEX wc={};
-    //If incremented, decremented: Window Registration Failed
-    //Usually is just a sizeof(...)
     wc.cbSize = sizeof(WNDCLASSEX);
-
-    //I have no use for this.
     wc.style = CS_HREDRAW|CS_VREDRAW;
-    //Handle messages.
     wc.lpfnWndProc = WndProc;
-    //Useless for now
     wc.cbClsExtra = 0;
-    // DLGWINDOWEXTRA something
     wc.cbWndExtra = 0;
-    //like Handle
     wc.hInstance = hInstance;
-    //icon
     wc.hIcon = (HICON)LoadImage(NULL,TEXT(".\\src\\img\\logo.ico"),IMAGE_ICON,0,0,LR_LOADFROMFILE);
     if(wc.hIcon==NULL){
         printf("Load Image Error: %x\n",GetLastError());
@@ -100,7 +90,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     wc.hIconSm = wc.hIcon;
 
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    //CreateSolidBrush create a HBRUSH used for coloring.
     wc.hbrBackground = CreateSolidBrush(RGB(0,255,255));
     //TODO:
     wc.lpszMenuName = NULL;
@@ -111,22 +100,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    MB_ICONEXCLAMATION | MB_OK);
         return 0;
     }
-    // WNDCLASSEX wcMain={};
-    //     wcMain.cbSize = sizeof(WNDCLASSEX);
-    //     wcMain.style = 0;
-    //     wcMain.lpfnWndProc = WndProc;
-    //     wcMain.cbClsExtra = 0;
-    //     wcMain.cbWndExtra = 0;
-    //     wcMain.hInstance = hInstance;
-    //     wcMain.hCursor = LoadCursor(NULL, IDC_ARROW);
-    //     wcMain.hbrBackground = CreateSolidBrush(RGB(0,0,0));
-    //     wcMain.lpszMenuName = NULL;
-    //     wcMain.lpszClassName = mainViewClassName;
-    // if (!RegisterClassEx(&wcMain)) {
-    //     MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("myShell"),
-    //                MB_ICONEXCLAMATION | MB_OK);
-    //     return 0;
-    // }
 
     hwnd = CreateWindowEx(
         WS_EX_CLIENTEDGE,
@@ -137,24 +110,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         NULL, NULL, hInstance, NULL);
 
 
-    //     if (hwnd == NULL||hwndEdit == NULL) {
-    //     MessageBox(NULL, TEXT("Window Creation Failed!"), TEXT("myShell"),
-    //                MB_ICONEXCLAMATION | MB_OK);
-    //     printf("Error: %x",GetLastError());
-    //     return 0;
-    // }
     ShowWindow(hwnd, nCmdShow);
     HFONT staticFont = CreateFont (TEXT_FONT_HEIGHT, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET, 
       OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, 
       DEFAULT_PITCH | FF_DONTCARE, TEXT("Consolas"));
     std::string staticContent="myShell>";
-    
-    // HDC dc = GetDC(hwndStatic);
-    // SelectObject(dc, staticFont);
     staticRect = getStringBorder(staticContent,NULL); 
-    // printf("%i,%i,%i,%i\n",rect.bottom,rect.top,rect.left,rect.right);
-    // DrawText(dc, staticContent.c_str(), staticContent.size(), &rect,  DT_NOPREFIX | DT_SINGLELINE);
-    // ReleaseDC(hwndStatic,dc);
     hwndStatic = CreateWindow("Edit",
                         staticContent.c_str(),  
                         WS_OVERLAPPED|WS_CHILD | WS_VISIBLE |ES_READONLY|ES_MULTILINE,
@@ -175,12 +136,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     WPA = (WNDPROC)SetWindowLongPtr(hwndEdit,GWLP_WNDPROC, (LONG_PTR)Edit_Prc);
 
     printf("????\n");
-    // SendMessage(hwndStatic, WM_SETFONT, (WPARAM)staticFont, TRUE);
-    // SIZE staticSize;
-    // GetTextExtentPoint32(GetDC(hwndStatic), staticContent.c_str(), staticContent.size(), &staticSize);
-    // MoveWindow(hwndStatic,0,0,staticSize.cx+10,staticSize.cy+1,TRUE);
-
-    // SendMessage(hwndEdit, WM_SETFONT, (WPARAM)staticFont, TRUE);
     
 
 
