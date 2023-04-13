@@ -1,0 +1,2 @@
+DEFAUT_PATH ./src/plugins/ 
+CUSTOM_PATH
