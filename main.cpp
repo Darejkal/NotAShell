@@ -5,38 +5,33 @@
 #include <iostream>
 #include <string>
 #include <vector>
+const std::wstring PATH_DEFAULT(L"src\\def\\settings.ini");
 const TCHAR parentClassName[] = TEXT("myWindowClass");
 int LINE_SIZE = 0;
 RECT windowRect = {0, 0, 10, 10}, staticRect = {0, 0, 0, 0};
 // editRect={0,0,0,0}
 HWND hwndMain, hwndStatic, hwndEdit;
-std::string staticContent = "", editContent = "", currentDirectoryText = "myShell>";
-std::wstring CURRENT_DIRECTORY;
+std::wstring staticContent = L"", editContent = L"", currentDirectoryText = L"myShell>";
+std::wstring PathCurrentDirectory,PathFileDirectory,PathDefault=L"src\\plugins\\",PathConfig;
 WNDPROC WPA;
-HFILE fileSetting;
-RECT getStringBorder(std::string text, HFONT font) {
+HANDLE fileSetting;
+RECT getStringBorderW(std::wstring text, HFONT font) {
     HDC dc = GetDC(NULL);
     if (font != NULL) {
         SelectObject(dc, font);
     }
 
     RECT rect = {0, 0, 0, 0};
-    DrawText(dc, text.c_str(), text.size(), &rect, DT_CALCRECT | DT_NOPREFIX);
+    DrawTextW(dc, text.c_str(), text.size(), &rect, DT_CALCRECT | DT_NOPREFIX);
 
     ReleaseDC(NULL, dc);
     return rect;
 }
 std::wstring getCurrentPath() {
-    std::vector<wchar_t> pathBuf;
-    DWORD copied = 0;
-    do {
-        pathBuf.resize(pathBuf.size() + MAX_PATH);
-        copied = GetModuleFileNameW(0, &pathBuf.at(0), pathBuf.size());
-    } while (copied >= pathBuf.size());
-
-    pathBuf.resize(copied);
-
-    std::wstring path(pathBuf.begin(), pathBuf.end());
+    int bufferSize=GetCurrentDirectory(NULL,NULL);
+    std::vector<TCHAR> pathBuf(bufferSize);
+    GetCurrentDirectory(bufferSize,&pathBuf.at(0));
+    std::wstring path(pathBuf.begin(), pathBuf.end()-1);
     return path;
 }
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -60,7 +55,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // std::cout << "SIZED\n";
             result = DefWindowProc(hwnd, msg, wParam, lParam);
             if (wParam == SIZE_MINIMIZED || hwndEdit == NULL) {
-                // printf("%i\n", wParam == SIZE_MAXIMIZED);
+                printf("-----Maximized ??? %i\n", wParam == SIZE_MAXIMIZED);
                 break;
             }
             GetWindowRect(hwnd, &windowRect);
@@ -68,7 +63,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             windowRect.bottom = windowRect.bottom - windowRect.top;
             windowRect.left = 0;
             windowRect.top = 0;
-            staticRect = getStringBorder(staticContent, NULL);
+            staticRect = getStringBorderW(staticContent, NULL);
             // printf("---> staticRect %i,%i,%i,%i\n", staticRect.left, staticRect.top, staticRect.right, staticRect.bottom);
             // GetWindowRect(hwndStatic,&staticRect);
             // staticRect.right=staticRect.right-staticRect.left;
@@ -81,9 +76,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             // printf("%i %i %i %i\n",windowRect.left,windowRect.top,windowRect.right,windowRect.bottom);
             // printf("-> %i %i %i %i\n",editRect.left,editRect.top,editRect.right,editRect.bottom);
             // MoveWindow(hwndMain,windowRect.right,windowRect.bottom,windowRect.right,windowRect.bottom,TRUE);
+            RECT directRect;
+            directRect=getStringBorderW(currentDirectoryText, NULL);
             MoveWindow(hwndStatic, staticRect.left, staticRect.top, staticRect.right - staticRect.left, staticRect.bottom - staticRect.top, TRUE);
             // std::cout<<"--"<<staticRect.right<<","<<staticRect.bottom - LINE_SIZE<<","<<windowRect.right-staticRect.right<<","<<LINE_SIZE<<"\n";
-            MoveWindow(hwndEdit, staticRect.right, staticRect.bottom - LINE_SIZE, windowRect.right - staticRect.right, LINE_SIZE, TRUE);
+            MoveWindow(hwndEdit, directRect.right, staticRect.bottom - LINE_SIZE, windowRect.right - directRect.right, LINE_SIZE, TRUE);
             break;
         case WM_KEYDOWN: {
             WORD wScrollNotify = 0xFFFF;
@@ -184,33 +181,86 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
     return result;
 }
+std::vector<std::wstring> splitW(std::wstring s, std::wstring delimiter) {
+    size_t pos_start = 0, pos_end,s_len=s.length(), delim_len = delimiter.length();
+    std::wstring token;
+    std::vector<std::wstring> res;
 
-bool getWindowText(HWND hwnd, std::string& text) {
-    editContent.resize(GetWindowTextLength(hwnd));
-    editContent.resize(GetWindowText(hwnd, (LPSTR)editContent.data(), editContent.size() + 1));
+    while ((pos_end = s.find(delimiter, pos_start)) != std::wstring::npos) {
+        for(int i=pos_start;i<pos_end;i++){
+            if(s[i]!=delimiter[i-pos_start]){
+                goto notADelimiter;
+            }
+        }
+        pos_start=pos_end+delim_len;
+        continue;
+        notADelimiter:
+        token = s.substr (pos_start, pos_end - pos_start);
+        pos_start = pos_end + delim_len;
+        res.push_back (token);
+    }
+
+    res.push_back (s.substr (pos_start));
+    return res;
+}
+bool executeCommand(std::wstring command){
+    std::wcout<<command<<"\n";
+    std::vector<std::wstring> cmdArr =splitW(command,L" ");
+    for(auto x:cmdArr){
+        std::wcout<<x<<"\n";
+    }
+    std::wstring temp=PathFileDirectory;
+    temp.append(PathDefault).append(cmdArr[0]);
+    HANDLE f=CreateFileW(temp.c_str(),GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,NULL, OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+    std::wcout<<temp<<"\n";
+    if(f==INVALID_HANDLE_VALUE){
+        temp=PathFileDirectory;
+        temp.append(PathConfig).append(cmdArr[0]);
+        std::wcout<<temp<<"\n";
+        CloseHandle(f);
+        f=CreateFileW(temp.c_str(),GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,NULL, OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+        std::wcout<<temp;
+        if(f==INVALID_HANDLE_VALUE){
+            staticContent.append(cmdArr[0]).append(L" is not a valid or known command.\r\n");
+            CloseHandle(f);
+            return 0;
+        }
+    }
+    PROCESS_INFORMATION cmdProcess;
+    STARTUPINFOW info;
+    info.cb=sizeof(STARTUPINFO);
+    info.lpDesktop=L"Winsta0\\default";
+    CreateProcessW(cmdArr[0].c_str(),&command[0],NULL,NULL,FALSE,
+    NULL
+    ,NULL,NULL,&info,&cmdProcess);
+
+    staticContent.append(cmdArr[0]).append(L" is a valid or known command.\r\n");
+    SendMessage(hwndMain, WM_SIZE, SIZE_RESTORED, 0);
     return 1;
 }
 LRESULT CALLBACK Edit_Prc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    // if(msg==WM_CHAR){
-    //     system("cls");
-    //     printf("%i|%i %i|%i\n",msg,msg==WM_CHAR,wParam,wParam==1);
-
-    // }
-    CURRENT_DIRECTORY=getCurrentPath().c_str();
     if (msg == WM_CHAR) {
         switch (wParam) {
             case 1:  // Ctrl+A
                 printf("-\n");
                 SendMessage(hwnd, EM_SETSEL, 0, -1);
                 return 1;
-                return 1;
             case 13:  // Enter
-                getWindowText(hwndEdit, editContent);
-                staticContent.append(editContent).append("\r\n").append(currentDirectoryText);
-                editContent = "";
-                SetWindowText(hwndStatic, staticContent.c_str());
-                SetWindowText(hwndEdit, editContent.c_str());
+                editContent.resize(GetWindowTextLength(hwnd));
+
+                editContent.resize(GetWindowTextW(hwnd, (LPWSTR)editContent.data(), editContent.size() + 1));
+                staticContent.append(editContent).append(L"\r\n");
+                executeCommand(editContent);
+                staticContent.append(currentDirectoryText);
+
+                editContent = L"";
+
+                SetWindowTextW(hwndStatic, staticContent.c_str());
+
+                SetWindowTextW(hwndEdit, editContent.c_str());
+
                 SendMessage(hwndMain, WM_SIZE, SIZE_RESTORED, 0);
+
                 return 1;
         }
     }
@@ -218,6 +268,10 @@ LRESULT CALLBACK Edit_Prc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine, int nCmdShow) {
+    //TODO:
+    PathFileDirectory=getCurrentPath().append(L"\\");
+    PathCurrentDirectory=PathFileDirectory;
+    // FreeConsole();
     WNDCLASSEX wc = {};
     wc.cbSize = sizeof(WNDCLASSEX);
     wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -247,7 +301,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         WS_EX_CLIENTEDGE,
         parentClassName,
         TEXT("myShell"),
-        WS_OVERLAPPEDWINDOW | WS_VSCROLL | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+        WS_OVERLAPPEDWINDOW | WS_VSCROLL | WS_CLIPCHILDREN|WS_CLIPSIBLINGS,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         NULL, NULL, hInstance, NULL);
 
@@ -256,19 +310,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     //                               OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
     //                               DEFAULT_PITCH | FF_DONTCARE, TEXT("Consolas"));
     staticContent = currentDirectoryText;
-    staticRect = getStringBorder(staticContent, NULL);
+    staticRect = getStringBorderW(staticContent, NULL);
     LINE_SIZE = staticRect.bottom - staticRect.top;
-    hwndStatic = CreateWindow("Edit",
-                              staticContent.c_str(),
+    hwndStatic = CreateWindowW(L"Edit",
+                              (LPWSTR)staticContent.data(),
                               WS_CHILD | WS_VISIBLE | ES_READONLY | ES_MULTILINE,
                               staticRect.left, staticRect.top, staticRect.right, staticRect.bottom,
                               hwndMain,
                               0,
                               hInstance, NULL);
-    // editRect={staticRect.right,staticRect.top,1000, staticRect.bottom};
-    editContent = "";
-    hwndEdit = CreateWindow("Edit",
-                            editContent.c_str(),
+    // editContent = L"";
+    hwndEdit = CreateWindowW(L"Edit",
+                            (LPWSTR)editContent.data(),
                             WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | WS_HSCROLL,
                             // LPtoDP((HDC)hwnd,staticSize.cx),LPtoDP((HDC)hwnd,staticSize.cy)-TEXT_FONT_HEIGHT,1000, 1000,
                             staticRect.right, staticRect.top, windowRect.right, staticRect.bottom,
@@ -278,19 +331,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     ShowScrollBar(hwndEdit, SB_BOTH, FALSE);
     WPA = (WNDPROC)SetWindowLongPtr(hwndEdit, GWLP_WNDPROC, (LONG_PTR)Edit_Prc);
     OFSTRUCT os_temp;
-    fileSetting = OpenFile(TEXT("\\def\\src\\settings.txt"), &os_temp, OF_EXIST);
-    if (fileSetting == HFILE_ERROR) {
+    std::wstring settingPath(PathCurrentDirectory);
+    settingPath.append(PATH_DEFAULT);
+    std::wcout<<settingPath<<"\n";
+    fileSetting = CreateFileW(settingPath.c_str(),GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,NULL, OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+
+    if (fileSetting == INVALID_HANDLE_VALUE) {
         MessageBox(
             NULL,
             TEXT("Setting File not found.\r\n Will create a new one."),
             TEXT("Warning"),
             MB_ICONEXCLAMATION | MB_OK);
-        // fileSetting = OpenFile(TEXT("\\def\\src\\settings.txt"), &os_temp, OF_CREATE | OF_WRITE);
-    } else {
-        //OpenFile doesnot suppot unicode
-        fileSetting = OpenFile(TEXT(CURRENT_DIRECTORY+"\\def\\src\\settings.txt"), &os_temp, OF_READ);
-    }
-    CloseHandle(&fileSetting);
+        CloseHandle(fileSetting);
+        fileSetting = CreateFileW(settingPath.c_str(),GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,NULL, OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+    } 
+    CloseHandle(fileSetting);
     bool isUnderlined = false;
     MSG Msg;
     while (GetMessage(&Msg, NULL, 0, 0) > 0) {
