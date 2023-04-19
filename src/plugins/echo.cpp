@@ -1,7 +1,7 @@
-#include <stdio.h>
+#include <iostream>
 int main(int argc, char* argv[]){
     for(int i=0;i<argc-1;i++){
-        printf("%s\n",argv[i]);
+        std::wcout<<argv[i];
     }
-    printf("%s",argv[argc-1]);
+    std::wcout<<argv[argc-1];
 }
