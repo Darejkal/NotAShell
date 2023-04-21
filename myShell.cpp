@@ -247,25 +247,17 @@ bool executeCommand(std::wstring command) {
     CloseHandle(childInRead);
     int bufferSize = 1024;
     BYTE buffer[bufferSize];
-    // buffer.resize(bufferSize);
     ZeroMemory(&buffer,bufferSize);
     DWORD dwRead=bufferSize,dwIndex=0;
     OVERLAPPED overlapped;
-
-    // ReadFile(childOutRead, buffer, bufferSize, &readed, NULL);
-    // std::wcout << "ReadOnce\n-\n";
-    // WriteFile(childInWrite, "Hello\n",5, NULL, NULL); 
     while(!ReadFile(childOutRead, &buffer[dwIndex], bufferSize, &dwRead, NULL)) {
              dwIndex =dwIndex+ dwRead;
-            // bufferSize++;
-            // buffer.resize(bufferSize);
     }
 
     std::string a((char*)buffer,dwIndex+dwRead);
     std::wstring b(a.begin(),a.end());
     staticContent.append(b).append(L"\r\n");
     SetWindowTextW(hwndStatic, staticContent.c_str());
-    // staticContent.append(cmdArr[0]).append(L" is a valid or known command.\r\n");
     SendMessage(hwndMain, WM_SIZE, SIZE_RESTORED, 0);
     CloseHandle(childOutRead);
     CloseHandle(childInRead);
@@ -278,10 +270,8 @@ LRESULT CALLBACK Edit_Prc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             case 1:  // Ctrl+A
                 SendMessage(hwnd, EM_SETSEL, 0, -1);
                 return 1;
-            case 3:
+            case 5: //Ctrl+E
                 SendMessage(hwndMain, WM_CLOSE, 0, 0);
-            case 5:
-                CloseWindow(hwndMain);
                 return 1;
             case 13:  // Enter
                 editContent.resize(GetWindowTextLength(hwnd));
@@ -309,14 +299,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // TODO:
     PathFileDirectory = getCurrentPath().append(L"\\");
     PathCurrentDirectory = PathFileDirectory;
-    // FreeConsole();
-    // if(!AllocConsole()){
-    //     MessageBox(
-    //         NULL,
-    //         TEXT("Console Alloc Error."),
-    //         TEXT("Warning"),
-    //         MB_ICONEXCLAMATION | MB_OK);
-    // }
+    FreeConsole();
     std::cout<<GetLastError();
     WNDCLASSEXW wc = {};
     // ZeroMemory(&wc,sizeof(WNDCLASSEX));
@@ -353,9 +336,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         NULL, NULL, hInstance, NULL);
 
     ShowWindow(hwndMain, nCmdShow);
-    // HFONT staticFont = CreateFont(TEXT_FONT_HEIGHT, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET,
-    //                               OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-    //                               DEFAULT_PITCH | FF_DONTCARE, TEXT("Consolas"));
     staticContent = currentDirectoryText;
     staticRect = getStringBorderW(staticContent, NULL);
     LINE_SIZE = staticRect.bottom - staticRect.top;
@@ -370,7 +350,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     hwndEdit = CreateWindowW(L"Edit",
                              (LPWSTR)editContent.data(),
                              WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | WS_HSCROLL | WS_CLIPSIBLINGS,
-                             // LPtoDP((HDC)hwnd,staticSize.cx),LPtoDP((HDC)hwnd,staticSize.cy)-TEXT_FONT_HEIGHT,1000, 1000,
                              staticRect.right, staticRect.top, windowRect.right, staticRect.bottom,
                              hwndMain,
                              0,
