@@ -57,7 +57,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             windowRect.bottom = windowRect.bottom - windowRect.top;
             windowRect.left = 0;
             windowRect.top = 0;
-            result = DefWindowProc(hwnd, msg, wParam, lParam);
+            result = DefWindowProcW(hwnd, msg, wParam, lParam);
             break;
         case WM_CLOSE:
             DestroyWindow(hwnd);
@@ -66,7 +66,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             PostQuitMessage(0);
             break;
         case WM_SIZE:
-            result = DefWindowProc(hwnd, msg, wParam, lParam);
+            result = DefWindowProcW(hwnd, msg, wParam, lParam);
             if (wParam == SIZE_MINIMIZED || hwndEdit == NULL) {
                 break;
             }
@@ -174,7 +174,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
             return 0;
         default:
-            result = DefWindowProc(hwnd, msg, wParam, lParam);
+            result = DefWindowProcW(hwnd, msg, wParam, lParam);
             break;
     }
     return result;
@@ -346,7 +346,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                hwndMain,
                                0,
                                hInstance, NULL);
-    editContent = L"echo.exe aa";
+    // editContent = L"echo.exe aa";
     hwndEdit = CreateWindowW(L"Edit",
                              (LPWSTR)editContent.data(),
                              WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | WS_HSCROLL | WS_CLIPSIBLINGS,
