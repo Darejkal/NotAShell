@@ -68,7 +68,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case WM_SIZE:
             result = DefWindowProc(hwnd, msg, wParam, lParam);
             if (wParam == SIZE_MINIMIZED || hwndEdit == NULL) {
-                // printf("-----Maximized ??? %i\n", wParam == SIZE_MAXIMIZED);
                 break;
             }
             GetWindowRect(hwnd, &windowRect);
@@ -84,7 +83,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_KEYDOWN: {
             WORD wScrollNotify = 0xFFFF;
-
             switch (wParam) {
                 case VK_UP:
                     wScrollNotify = SB_LINEUP;
@@ -204,12 +202,7 @@ std::vector<std::wstring> splitW(std::wstring s, std::wstring delimiter) {
     return res;
 }
 bool executeCommand(std::wstring command) {
-    return 1;
-    // std::wcout << command << " *****\n";
     std::vector<std::wstring> cmdArr = splitW(command, L" ");
-    // for (auto x : cmdArr) {
-    //     std::wcout << x << "\n";
-    // }
     std::wstring temp = PathFileDirectory;
     temp.append(PathDefault).append(cmdArr[0]);
     HANDLE f = CreateFileW(temp.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -229,11 +222,13 @@ bool executeCommand(std::wstring command) {
     }
     CloseHandle(f);
     SECURITY_ATTRIBUTES saAttr;
+    ZeroMemory(&saAttr,sizeof(saAttr));
     saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
     saAttr.bInheritHandle = TRUE;
     saAttr.lpSecurityDescriptor = NULL;
     CreatePipe(&childOutRead, &childOutWrite, &saAttr, 0);
     SetHandleInformation(childOutRead, HANDLE_FLAG_INHERIT, 0);
+    SetHandleInformation(childInWrite, HANDLE_FLAG_INHERIT, 0);
     PROCESS_INFORMATION cmdProcess;
     ZeroMemory(&cmdProcess, sizeof(cmdProcess));
     STARTUPINFOW si;
@@ -241,33 +236,38 @@ bool executeCommand(std::wstring command) {
     si.cb = sizeof(STARTUPINFO);
     si.lpDesktop = L"Winsta0\\default";
     si.hStdOutput = childOutWrite;
+    si.hStdError = childOutWrite;
+    si.hStdInput = childInRead;
     si.dwFlags |= STARTF_USESTDHANDLES;
-    CreateProcessW(cmdArr[0].c_str(), &command[0], NULL, NULL, TRUE,
-                   0, NULL, NULL, &si, &cmdProcess);
-
-    int bufferSize = 100;
-    wchar_t buffer[bufferSize];
-    DWORD readed;
-    OVERLAPPED overlapped;
-    // staticContent.append(L"\r\n");
-    std::wcout << "BeginRead\n-\n";
-    // while(ReadFile(childOutRead, buffer, bufferSize, &readed, NULL)!=0&&readed!=0){
-    //     staticContent.append(buffer);
-    // }
-    ReadFile(childOutRead, buffer, bufferSize, &readed, NULL);
-    std::wcout << "ReadOnce\n-\n";
-
-    for (;;) {
-        if (!ReadFile(childOutRead, buffer, bufferSize, &readed, NULL) || readed == 0) {
-            std::wcout << "reading\n";
-        }
+    if(!CreateProcessW(temp.c_str(), (LPWSTR)command.c_str(), NULL, NULL, TRUE,
+                   CREATE_NEW_CONSOLE, NULL, NULL, &si, &cmdProcess)){
+        MessageBox(hwndMain,"Cannot create child","Command Error",MB_ICONWARNING|MB_OK);
     }
-    std::wcout << "EndRead\n-\n";
+    CloseHandle(childOutWrite);
+    CloseHandle(childInRead);
+    int bufferSize = 1024;
+    BYTE buffer[bufferSize];
+    // buffer.resize(bufferSize);
+    ZeroMemory(&buffer,bufferSize);
+    DWORD dwRead=bufferSize,dwIndex=0;
+    OVERLAPPED overlapped;
+
+    // ReadFile(childOutRead, buffer, bufferSize, &readed, NULL);
+    // std::wcout << "ReadOnce\n-\n";
+    // WriteFile(childInWrite, "Hello\n",5, NULL, NULL); 
+    while(!ReadFile(childOutRead, &buffer[dwIndex], bufferSize, &dwRead, NULL)) {
+             dwIndex =dwIndex+ dwRead;
+            // bufferSize++;
+            // buffer.resize(bufferSize);
+    }
+
+    std::string a((char*)buffer,dwIndex+dwRead);
+    std::wstring b(a.begin(),a.end());
+    staticContent.append(b).append(L"\r\n");
     SetWindowTextW(hwndStatic, staticContent.c_str());
     // staticContent.append(cmdArr[0]).append(L" is a valid or known command.\r\n");
     SendMessage(hwndMain, WM_SIZE, SIZE_RESTORED, 0);
     CloseHandle(childOutRead);
-    CloseHandle(childOutWrite);
     CloseHandle(childInRead);
     CloseHandle(childInWrite);
     return 1;
@@ -310,6 +310,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     PathFileDirectory = getCurrentPath().append(L"\\");
     PathCurrentDirectory = PathFileDirectory;
     // FreeConsole();
+    // if(!AllocConsole()){
+    //     MessageBox(
+    //         NULL,
+    //         TEXT("Console Alloc Error."),
+    //         TEXT("Warning"),
+    //         MB_ICONEXCLAMATION | MB_OK);
+    // }
+    std::cout<<GetLastError();
     WNDCLASSEXW wc = {};
     // ZeroMemory(&wc,sizeof(WNDCLASSEX));
     wc.cbSize = sizeof(WNDCLASSEX);
@@ -358,7 +366,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                hwndMain,
                                0,
                                hInstance, NULL);
-    // editContent = L"";
+    editContent = L"echo.exe aa";
     hwndEdit = CreateWindowW(L"Edit",
                              (LPWSTR)editContent.data(),
                              WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | WS_HSCROLL | WS_CLIPSIBLINGS,
