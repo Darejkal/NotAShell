@@ -9,8 +9,7 @@ int LINE_SIZE = 0;
 RECT windowRect = {0, 0, 10, 10}, staticRect = {0, 0, 0, 0};
 HWND hwndMain, hwndStatic, hwndEdit;
 HANDLE fileSetting;
-std::wstring staticContent = L"", editContent = L"", currentDirectoryText = L"myShell>";
-std::wstring PathCurrentDirectory, PathFileDirectory;
+std::wstring staticContent = L"", editContent = L"";
 
 WNDPROC WPA;
 RECT getStringBorderW(std::wstring text, HWND hwnd) {
@@ -195,7 +194,7 @@ LRESULT CALLBACK hwndEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 editContent.resize(GetWindowTextW(hwnd, (LPWSTR)editContent.data(), editContent.size() + 1));
                 //Append content to Static window
                 staticContent.append(editContent).append(L"\r\n");  // NewLine OK
-                scExecuteCommand(hwndMain,staticContent,editContent,PathFileDirectory);
+                scExecuteCommand(hwndMain,staticContent,editContent,PathFileDirectory,PathCurrentDirectory);
                 staticContent.append(currentDirectoryText);  // No NewLine OK
 
                 editContent = L"";
@@ -213,7 +212,9 @@ LRESULT CALLBACK hwndEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 int createWindow(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     PathFileDirectory = getCurrentPath().append(L"\\");
     PathCurrentDirectory = PathFileDirectory;
-    FreeConsole();
+    currentDirectoryText=shellName;
+    currentDirectoryText.append(PathCurrentDirectory).append(L">");
+    // FreeConsole();
     WNDCLASSEXW wc = {};
     ZeroMemory(&wc, sizeof(WNDCLASSEX));
     wc.cbSize = sizeof(WNDCLASSEX);

@@ -31,11 +31,14 @@ int wmain(int argc, wchar_t* argv[]){
         func=ms::addConfig;
     } else if(!action.compare(L"del")){
         func=ms::removeConfig;
-    } 
+    } else {
+        printHelp();
+        return 0;
+    }
     for(int i=2;i<argc;i++){
         std::wstring temp(argv[i]);
         std::wcout<<temp<<L"\n";
-        (*func)(L"PATH_CONFIG",temp);
+        (*func)(PATH_CONFIG,temp);
     }
     return 0;
 }
