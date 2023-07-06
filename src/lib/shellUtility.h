@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 namespace ms {
+std::wstring staticContent = L"", editContent = L"";
 std::vector<std::wstring> _suSplitW(std::wstring s, std::wstring delimiter) {
     size_t pos_start = 0, pos_end, s_len = s.length(), delim_len = delimiter.length();
     std::wstring token;
@@ -32,6 +33,11 @@ std::vector<std::wstring> suSplitCommand(std::wstring s, std::wstring delimiter)
         } else {
             auto t = _suSplitW(temp[i],delimiter);
             result.insert(result.end(),t.begin(),t.end());
+        }
+    }
+    for(int i=0;i<result.size();i++){
+        if(result[i].size()==0){
+            result.erase(result.begin()+i);
         }
     }
     return result;

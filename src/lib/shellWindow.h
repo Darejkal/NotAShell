@@ -9,8 +9,6 @@ int LINE_SIZE = 0;
 RECT windowRect = {0, 0, 10, 10}, staticRect = {0, 0, 0, 0};
 HWND hwndMain, hwndStatic, hwndEdit;
 HANDLE fileSetting;
-std::wstring staticContent = L"", editContent = L"";
-
 WNDPROC WPA;
 RECT getStringBorderW(std::wstring text, HWND hwnd) {
     HDC hdc = GetDC(hwnd);
@@ -185,9 +183,15 @@ LRESULT CALLBACK hwndEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             case 1:  // Ctrl+A
                 SendMessage(hwnd, EM_SETSEL, 0, -1);
                 return 1;
+            case 3:  // Ctrl+C
+                if(ModeExecution.compare(L"foreground") == 0){
+                    buildin_child_kill(sc_lastCreatedChild.hProcess);
+                }
+                return 1;
             case 5:  // Ctrl+E
                 SendMessage(hwndMain, WM_CLOSE, 0, 0);
                 return 1;
+
             case 13:  // Enter
                 //Get content of Edit window
                 editContent.resize(GetWindowTextLength(hwnd));
@@ -214,7 +218,7 @@ int createWindow(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, 
     PathCurrentDirectory = PathFileDirectory;
     currentDirectoryText=shellName;
     currentDirectoryText.append(PathCurrentDirectory).append(L">");
-    // FreeConsole();
+    FreeConsole();
     WNDCLASSEXW wc = {};
     ZeroMemory(&wc, sizeof(WNDCLASSEX));
     wc.cbSize = sizeof(WNDCLASSEX);
@@ -225,7 +229,9 @@ int createWindow(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, 
     wc.hInstance = hInstance;
     wc.hIcon = (HICON)LoadImage(NULL, TEXT(".\\src\\img\\logo.ico"), IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
     if (wc.hIcon == NULL) {
-        printf("Load Image Error: %x\n", GetLastError());
+        // printf("Load Image Error: %x\n", GetLastError());
+        MessageBox(NULL, TEXT("Load Image Error!"), TEXT("myShell"),
+        MB_ICONEXCLAMATION | MB_OK);
     }
     wc.hIconSm = wc.hIcon;
 

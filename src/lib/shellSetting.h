@@ -8,13 +8,14 @@
 #include "shellUtility.h"
 #define PATH_CONFIG L"PATH_CONFIG"
 namespace ms {
-const std::wstring _PathDefaultDirectory = L"src\\plugins\\";
+const std::wstring _PathDefaultPluginDirectory = L"src\\plugins\\";
 const LPCWSTR _RelativeSettingPathDefault = L".\\src\\settings.ini";
 const std::wstring shellName=L"(myShell)";
 std::wstring PathCurrentDirectory, PathFileDirectory,currentDirectoryText;
 std::vector<std::wstring> PathConfig;
 const DWORD settingBuff = 256;
 const std::wstring configDelimiter=L",";
+std::wstring ModeExecution=L"foreground";
 bool readConfig(LPCWSTR key, LPWSTR returnLP) {
     return GetPrivateProfileStringW(L"SETTING", key, NULL, returnLP, settingBuff, _RelativeSettingPathDefault) == TRUE;
 }
