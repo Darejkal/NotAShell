@@ -59,36 +59,36 @@ bool buildin_cls(const std::vector<std::wstring>& cmdArr, std::wstring& contentO
     return 0;
 }
 bool buildin_path(const std::vector<std::wstring>& cmdArr, std::wstring& contentOut) {
-    if(cmdArr.size()==1){
+    if (cmdArr.size() == 1) {
         contentOut.append(L"path.exe\nINPUT: path.exe\n add [SPACE SEPERATED PARAM(S)]\n del [SPACE SEPERATED PARAM(S)]\n cur\nOUTPUT: Modify user's PATH or Show current PATH config");
         return 0;
     }
     std::wstring action(cmdArr[1]);
-    bool (*func)(LPCWSTR,std::wstring)=NULL;
-    if(!action.compare(L"cur")){
+    bool (*func)(LPCWSTR, std::wstring) = NULL;
+    if (!action.compare(L"cur")) {
         WCHAR temp[ms::settingBuff];
-        ms::readConfig(L"PATH_CONFIG",temp);
+        ms::readConfig(L"PATH_CONFIG", temp);
         std::wstring t(temp);
         contentOut.append(L"(BEGIN OF CONFIG)\n").append(t).append(L"\n(END OF CONFIG)\n");
         return 0;
     }
-    //Other options:
-    if(cmdArr.size()==2){
+    // Other options:
+    if (cmdArr.size() == 2) {
         contentOut.append(L"path.exe\nINPUT: path.exe\n add [SPACE SEPERATED PARAM(S)]\n del [SPACE SEPERATED PARAM(S)]\n cur\nOUTPUT: Modify user's PATH or Show current PATH config");
         return 0;
     }
-    if(!action.compare(L"add")){
-        func=ms::addConfig;
-    } else if(!action.compare(L"del")){
-        func=ms::removeConfig;
+    if (!action.compare(L"add")) {
+        func = ms::addConfig;
+    } else if (!action.compare(L"del")) {
+        func = ms::removeConfig;
     } else {
         contentOut.append(L"path.exe\nINPUT: path.exe\n add [SPACE SEPERATED PARAM(S)]\n del [SPACE SEPERATED PARAM(S)]\n cur\nOUTPUT: Modify user's PATH or Show current PATH config");
         return 0;
     }
-    for(int i=2;i<cmdArr.size();i++){
+    for (int i = 2; i < cmdArr.size(); i++) {
         std::wstring temp(cmdArr[i]);
         // std::wcout<<temp<<L"\n";
-        (*func)(PATH_CONFIG,temp);
+        (*func)(PATH_CONFIG, temp);
     }
     return 0;
 }
@@ -107,9 +107,13 @@ bool buildin_dir(const std::vector<std::wstring>& cmdArr, std::wstring& contentO
             break;
         case 2:
             path = pathdir_getPathIfNewIsRelative(PathCurrentDirectory, std::wstring(cmdArr[1]));
-            break;
+            if (pathdir_directoryExists(path)) {
+                break;
+            } else {
+                contentOut.append(L"The specified path does not exist!\r\n");
+            }
         default:
-            contentOut.append(L"[Built-in] dir\r\nINPUT: dir [PATH]\r\nOUTPUT: Path's files");
+            contentOut.append(L"[Built-in] dir\r\nINPUT: dir [PATH]\r\nOUTPUT: Print out path's files");
             return 0;
     }
 
@@ -219,7 +223,7 @@ bool buildin_child(const std::vector<std::wstring>& cmdArr, std::wstring& conten
     }
     if (cmdArr.size() == 1) {
         contentOut.append(L"List of active child processes managed by MyShell:\r\n");
-        contentOut.append(std::to_wstring(sc_childProcessList.size()));
+        // contentOut.append(std::to_wstring(sc_childProcessList.size()));
         DWORD exitCode;
         for (int i = 0; i < sc_childProcessList.size(); i++) {
             GetExitCodeProcess(sc_childProcessList[i].hProcess, &exitCode);
@@ -233,6 +237,7 @@ bool buildin_child(const std::vector<std::wstring>& cmdArr, std::wstring& conten
                 sc_childProcessList.erase(sc_childProcessList.begin() + i);
             }
         }
+        contentOut.append(L"\r\n");
         return 0;
     } else if (cmdArr.size() == 3) {
         PROCESS_INFORMATION pci;
@@ -350,7 +355,7 @@ bool scExecuteCommand(const HWND& hwndParentWindow, std::wstring& contentOut, co
                             CREATE_NEW_CONSOLE, NULL, NULL, &si, &cmdProcess)) {
             MessageBox(hwndParentWindow, "Cannot create child", "Command Error", MB_ICONWARNING | MB_OK);
         }
-        sc_lastCreatedChild=cmdProcess;
+        sc_lastCreatedChild = cmdProcess;
         CloseHandle(childOutWrite);
         CloseHandle(childInRead);
         int bufferSize = 1024;
@@ -358,8 +363,12 @@ bool scExecuteCommand(const HWND& hwndParentWindow, std::wstring& contentOut, co
         ZeroMemory(&buffer, bufferSize);
         DWORD dwRead = bufferSize, dwIndex = 0;
         OVERLAPPED overlapped;
-
+        DWORD exitCode;
         while (!ReadFile(childOutRead, &buffer[dwIndex], bufferSize, &dwRead, NULL)) {
+            GetExitCodeProcess(sc_lastCreatedChild.hProcess, &exitCode);
+            if (exitCode != STILL_ACTIVE) {
+                break;
+            }
             dwIndex = dwIndex + dwRead;
             SendMessage(hwndParentWindow, WM_SIZE, SIZE_RESTORED, 0);
         }
@@ -372,15 +381,17 @@ bool scExecuteCommand(const HWND& hwndParentWindow, std::wstring& contentOut, co
         return 1;
 
     } else if (ModeExecution.compare(L"background") == 0) {
+        si.hStdOutput = 0;
+        si.hStdError = 0;
+        si.hStdInput = 0;
         if (!CreateProcessW(temp.c_str(), (LPWSTR)command.c_str(), NULL, NULL, TRUE,
                             CREATE_NEW_CONSOLE, NULL, NULL, &si, &cmdProcess)) {
             MessageBox(hwndParentWindow, "Cannot create child", "Command Error", MB_ICONWARNING | MB_OK);
         }
         contentOut.append(L"[Background mode] Created process in background.\r\n");
         sc_childProcessList.push_back(cmdProcess);
-        sc_lastCreatedChild=cmdProcess;
+        sc_lastCreatedChild = cmdProcess;
         return 1;
     }
-
 }
 }  // namespace ms
